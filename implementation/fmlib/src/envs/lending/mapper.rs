@@ -1,4 +1,7 @@
-use super::{lv::{Sample, Decision, Payback}, memoryless::Vertex};
+use super::{
+    memoryless::{Sample, Decision, Payback},
+    memoryless::Vertex
+};
 
 pub type Lmv = LendingMappedVertex;
 
@@ -11,15 +14,18 @@ pub enum LendingMappedVertex {
     Null,
 }
 
-pub type Lmvm = LendingMCVertexMapper;
-pub struct LendingMCVertexMapper;
+pub struct LendingVertexMapper;
 
-impl LendingMCVertexMapper {
+impl LendingVertexMapper {
     pub fn map(&self, s: &Vertex) -> Option<Lmv> {
         match s {
-            Vertex::Sample(s) => Some(Lmv::Sample(*s)),
-            Vertex::Decision(s, d) => Some(Lmv::Decision(*s, *d)),
-            Vertex::Payback(s, _, p) => Some(Lmv::Payback(*s, *p)),
+            Vertex::Sample(s) => { Some( Lmv::Sample(*s) ) },
+            Vertex::Decision(s, d) => {
+                Some( Lmv::Decision(*s, *d) )
+            },
+            Vertex::Payback(s, _, p) => {
+                Some( Lmv::Payback(*s, *p) )
+            },
             _ => None,
         }
     }

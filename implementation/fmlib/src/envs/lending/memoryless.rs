@@ -1,15 +1,26 @@
 use crate::envs::lending::{
     lending::Lending,
-    lv::*
 };
 use crate::util;
 
-#[derive(Debug, Clone)]
+pub type Sample = (i32, i32);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Decision {
+    Accept, Reject,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Payback {
+    Success, Fail,
+}
+
+#[derive(Clone, Debug)]
 pub enum Vertex {
-    Env(Env),
-    Sample(Env, Sample),
-    Decision(Env, Sample, Decision),
-    Payback(Env, Sample, Decision, Payback),
+    Env     (),
+    Sample  (Sample),
+    Decision(Sample, Decision),
+    Payback (Sample, Decision, Payback),
 }
 
 pub type Lmmc = LendingMemorylessMarkovChain;
@@ -17,66 +28,74 @@ pub type Lmmc = LendingMemorylessMarkovChain;
 pub struct LendingMemorylessMarkovChain {
     curr: Option<Vertex>,
     lending: Lending,
+    env: Vec<Vec<i32>>,
 }
 
 impl LendingMemorylessMarkovChain {
     pub fn new(lending: Lending) -> Self {
         Self {
             curr: None,
-            lending
+            env: lending.init_credit.clone(),
+            lending,
         }
     }
 
-    fn visit_env(&self, e: &Env) -> Vertex {
-        let (g, cs) = (self.lending.group_count, self.lending.credit_score);
+    fn visit_env(&self) -> Vertex {
+        let (gc, cs) = (self.lending.group_count, self.lending.credit_score);
         let gp = self.lending.group_population.clone();
         let total_population: f64 = gp.iter().sum::<i32>() as f64;
 
         let mut neighbors = Vec::<(Vertex, f64)>::new();
 
-        for i in 0..g {
-            for j in 0..cs {
-                if e[i as usize][j as usize] == 0 {
+        for i in 0..gc as usize {
+            for j in 0..cs as usize {
+                if self.env[i][j] == 0 {
                     continue;
                 }
                 
                 let p_group = gp[i as usize] as f64 / total_population;
-                let p_cs = (e[i as usize][j as usize] as f64) /
-                    (gp[i as usize] as f64);
+                let p_cs = (self.env[i][j] as f64) / (gp[i as usize] as f64);
 
-                neighbors.push((Vertex::Sample(e.clone(), (i, j)), p_group * p_cs));
+                neighbors.push(
+                    (Vertex::Sample((i as i32, j as i32)), p_group * p_cs)
+                );
             }
         }
 
         util::weighted_choice(&neighbors)
     }
 
-    fn visit_sample(&self, e: &Env, s: Sample) -> Vertex {
+    fn visit_sample(&self, s: Sample) -> Vertex {
         let u = Vec::from(
             [
-                Vertex::Decision(e.clone(), s, Decision::Reject),
-                Vertex::Decision(e.clone(), s, Decision::Accept),
+                Vertex::Decision(s, Decision::Reject),
+                Vertex::Decision(s, Decision::Accept),
             ]
         );
 
         let policy = &self.lending.policy;
         let mut neighbors = Vec::<(Vertex, f64)>::new();
-        neighbors.push((u[0].clone(), 1.0 - policy[&s]));
-        neighbors.push((u[1].clone(), policy[&s]));
+        
+        neighbors.push(
+            (u[0].clone(), 1.0 - policy[&s])
+        );
+        neighbors.push(
+            (u[1].clone(), policy[&s])
+        );
         
         util::weighted_choice(&neighbors)
     }
 
-    fn visit_decision(&self, e: &Env, s: Sample, d: Decision) -> Vertex {
+    fn visit_decision(&self, s: Sample, d: Decision) -> Vertex {
         let payback_prob = self.lending.payback_prob.clone();
         match d {
             Decision::Reject => {
-                Vertex::Env(e.clone())
+                Vertex::Env()
             },
             Decision::Accept => {
                 let u = vec![
-                    Vertex::Payback(e.clone(), s, d, Payback::Fail),
-                    Vertex::Payback(e.clone(), s, d, Payback::Success),
+                    Vertex::Payback(s, d, Payback::Fail),
+                    Vertex::Payback(s, d, Payback::Success),
                 ];
 
                 let neighbors =  vec![
@@ -89,8 +108,8 @@ impl LendingMemorylessMarkovChain {
         }
     }
 
-    fn visit_payback(&self, e: &Env, s: Sample, p: Payback) -> Vertex {
-        let mut new_env = e.clone();
+    fn visit_payback(&mut self, s: Sample, p: Payback) -> Vertex {
+        let mut new_env = self.env.clone();
         let sample = s;
 
         let cs = self.lending.credit_score;
@@ -110,8 +129,9 @@ impl LendingMemorylessMarkovChain {
                 util::_max_update(&mut new_env, sample, 0);
             },
         }
-
-        Vertex::Env(new_env)
+        
+        self.env = new_env;
+        Vertex::Env()
     }
 }
 
@@ -122,21 +142,21 @@ impl Iterator for LendingMemorylessMarkovChain {
         let next: Option<Self::Item>;
         match &self.curr {
             None => {
-                next = Some(Vertex::Env(self.lending.init_credit.clone()));
+                next = Some(Vertex::Env());
             },
             Some(v) => {
                 match v {
-                    Vertex::Env(e) => {
-                        next = Some(self.visit_env(e));
+                    Vertex::Env() => {
+                        next = Some(self.visit_env());
                     },
-                    Vertex::Sample(e, s) => {
-                        next = Some(self.visit_sample(e, *s));
+                    Vertex::Sample(s) => {
+                        next = Some(self.visit_sample(*s));
                     },
-                    Vertex::Decision(e, s, d) => {
-                        next = Some(self.visit_decision(e, *s, *d));
+                    Vertex::Decision(s, d) => {
+                        next = Some(self.visit_decision(*s, *d));
                     },
-                    Vertex::Payback(e, s, _d, p) => {
-                        next = Some(self.visit_payback(e, *s, *p));
+                    Vertex::Payback(s, _d, p) => {
+                        next = Some(self.visit_payback(*s, *p));
                     },
                 }
             },
