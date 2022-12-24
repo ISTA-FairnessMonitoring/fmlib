@@ -8,7 +8,7 @@ use crate::envs::admission::{
 use crate::envs::mc::Mc;
 use crate::envs::lending::{
     lending::Lending,
-    memoryless::*,
+    markov_chain::*,
 };
 use std::collections::HashMap;
 use rand::Rng;

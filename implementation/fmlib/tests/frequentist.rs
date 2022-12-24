@@ -9,8 +9,8 @@ mod tests {
         envs::admission::{amvm::{Amvm, Amv}, memoryless::Ammc}
     };
     use fmlib::envs::lending::{
-        memoryless::Lmmc,
-        memoryless::{Decision, Payback},
+        markov_chain::Lmmc,
+        markov_chain::{Decision, Payback},
         mapper::*,
     };
     use fmlib::envs::mc::Mc;

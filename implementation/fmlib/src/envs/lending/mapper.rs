@@ -1,6 +1,6 @@
 use super::{
-    memoryless::{Sample, Decision, Payback},
-    memoryless::Vertex
+    markov_chain::{Sample, Decision, Payback},
+    markov_chain::Vertex
 };
 
 pub type Lmv = LendingMappedVertex;

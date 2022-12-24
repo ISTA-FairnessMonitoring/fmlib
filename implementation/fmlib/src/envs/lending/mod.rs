@@ -1,3 +1,3 @@
 pub mod lending;
-pub mod memoryless;
+pub mod markov_chain;
 pub mod mapper;

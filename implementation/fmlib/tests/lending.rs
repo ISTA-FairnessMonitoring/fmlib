@@ -4,7 +4,7 @@ mod tests {
     use std::vec;
     use fmlib::envs::lending::{
         lending::*,
-        memoryless::*,
+        markov_chain::*,
     };
 
     #[test]
