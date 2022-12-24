@@ -35,7 +35,7 @@ mod tests {
             policy,
         };
         
-        let mc = Lmmc::new(lending);
+        let mc = LendingMarkovChain::new(lending);
         for (i, s) in mc.take(100).enumerate() {
             println!("{}: {:?}", i, s);
         }

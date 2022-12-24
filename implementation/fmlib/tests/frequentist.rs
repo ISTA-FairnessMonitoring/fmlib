@@ -9,7 +9,7 @@ mod tests {
         envs::admission::{amvm::{Amvm, Amv}, memoryless::Ammc}
     };
     use fmlib::envs::lending::{
-        markov_chain::Lmmc,
+        markov_chain::LendingMarkovChain,
         markov_chain::{Decision, Payback},
         mapper::*,
     };
@@ -36,7 +36,7 @@ mod tests {
     }
 
     fn _run_lending_memless(
-        mc: &mut Lmmc,
+        mc: &mut LendingMarkovChain,
         mapper: &LendingVertexMapper,
         monitors: &mut Vec<&mut Frequentist<Lmv>>,
         n: i32

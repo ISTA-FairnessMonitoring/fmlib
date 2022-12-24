@@ -17,7 +17,7 @@ use rand::Rng;
 // Each function in this division mainly generates a Markov chain,
 // parameters of which are hard-coded in the function body.
 
-pub fn markov_chain_memless() -> LendingMemorylessMarkovChain {
+pub fn markov_chain_memless() -> LendingMarkovChain {
     let payback_prob = (0..10).map(
         |x| (x, ((x + 5) % 10) as f64 / 10.0)
     ).collect::<HashMap<_, _>>();
@@ -44,10 +44,10 @@ pub fn markov_chain_memless() -> LendingMemorylessMarkovChain {
         policy,
     };
     
-    Lmmc::new(lending)
+    LendingMarkovChain::new(lending)
 }
 
-pub fn markov_chain_lending_medium() -> Lmmc {
+pub fn markov_chain_lending_medium() -> LendingMarkovChain {
     let payback_prob: HashMap<_, _> = vec![
         (0, 0.4), (1, 0.7), (2, 0.8),
     ].into_iter().collect();
@@ -75,12 +75,12 @@ pub fn markov_chain_lending_medium() -> Lmmc {
         policy,
     };
 
-    Lmmc::new(lending)
+    LendingMarkovChain::new(lending)
 }
 
 
 
-pub fn markov_chain_lending_medium2() -> Lmmc {
+pub fn markov_chain_lending_medium2() -> LendingMarkovChain {
     let payback_prob: HashMap<_, _> = vec![
         (0, 0.1), (1, 0.3), (2, 0.5),(4, 0.),
     ].into_iter().collect();
@@ -108,10 +108,10 @@ pub fn markov_chain_lending_medium2() -> Lmmc {
         policy,
     };
 
-    Lmmc::new(lending)
+    LendingMarkovChain::new(lending)
 }
 
-pub fn markov_chain_lending_medium_fair() -> Lmmc {
+pub fn markov_chain_lending_medium_fair() -> LendingMarkovChain {
     let payback_prob: HashMap<_, _> = vec![
         (0, 0.4), (1, 0.7), (2, 0.8),
     ].into_iter().collect();
@@ -139,10 +139,10 @@ pub fn markov_chain_lending_medium_fair() -> Lmmc {
         policy,
     };
 
-    Lmmc::new(lending)
+    LendingMarkovChain::new(lending)
 }
 
-pub fn markov_chain_lending_large() -> Lmmc {
+pub fn markov_chain_lending_large() -> LendingMarkovChain {
     let payback_prob: HashMap<_, _> = vec![
         (0, 0.1), (1, 0.25), (2, 0.4), (3, 0.5), (4, 0.6),
         (5, 0.7), (6, 0.8), (7, 0.9), (8, 0.95), (9, 0.99)
@@ -185,12 +185,12 @@ pub fn markov_chain_lending_large() -> Lmmc {
         policy,
     };
 
-    Lmmc::new(lending)
+    LendingMarkovChain::new(lending)
 }
 
 
 
-pub fn markov_chain_lending_large_fair() -> Lmmc {
+pub fn markov_chain_lending_large_fair() -> LendingMarkovChain {
     let payback_prob: HashMap<_, _> = vec![
         (0, 0.1), (1, 0.25), (2, 0.4), (3, 0.5), (4, 0.6),
         (5, 0.7), (6, 0.8), (7, 0.9), (8, 0.95), (9, 0.99)
@@ -233,7 +233,7 @@ pub fn markov_chain_lending_large_fair() -> Lmmc {
         policy,
     };
 
-    Lmmc::new(lending)
+    LendingMarkovChain::new(lending)
 }
 
 

@@ -15,7 +15,7 @@ pub enum Payback {
     Success, Fail,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Vertex {
     Env     (),
     Sample  (Sample),
@@ -23,15 +23,15 @@ pub enum Vertex {
     Payback (Sample, Decision, Payback),
 }
 
-pub type Lmmc = LendingMemorylessMarkovChain;
+// pub type Lmmc = LendingMarkovChain;
 
-pub struct LendingMemorylessMarkovChain {
-    curr: Option<Vertex>,
-    lending: Lending,
-    env: Vec<Vec<i32>>,
+pub struct LendingMarkovChain {
+    pub curr: Option<Vertex>,
+    pub lending: Lending,
+    pub env: Vec<Vec<i32>>,
 }
 
-impl LendingMemorylessMarkovChain {
+impl LendingMarkovChain {
     pub fn new(lending: Lending) -> Self {
         Self {
             curr: None,
@@ -135,7 +135,7 @@ impl LendingMemorylessMarkovChain {
     }
 }
 
-impl Iterator for LendingMemorylessMarkovChain {
+impl Iterator for LendingMarkovChain {
     type Item = Vertex;
 
     fn next(&mut self) -> Option<Self::Item> {
