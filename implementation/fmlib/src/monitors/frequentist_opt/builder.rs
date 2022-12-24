@@ -1,14 +1,14 @@
-use std::{cell::RefCell, collections::HashMap, vec, rc::Rc, hash::Hash, f64::NAN};
+use std::{collections::HashMap, vec, hash::Hash, f64::NAN};
 
 use crate::op::{BinOp, UnaryOp};
 
-use super::{tv::{Tv, Variable, Binary}, frequentist_opt::FrequentistOpt};
+use super::{tv::{Tv, Variable, Binary, BaseVertexData}, frequentist_opt::FrequentistOpt};
 
 pub struct FrequentistOptBuilder<T: Clone + Eq + Hash> {
     pub c_sym: HashMap<T, i32>,
     pub c_trans: HashMap<(T, T), i32>,
-    pub x: HashMap<T, Rc<RefCell<Vec<Option<T>>>>>,
-    pub vertices: Vec<Rc<RefCell<Tv<T>>>>,
+    pub x: HashMap<T, Vec<Option<T>>>,
+    pub vertices: Vec<Tv<T>>,
     pub delta: f64,
     pub index: i32,
 }
@@ -33,15 +33,19 @@ impl<T: Clone + Eq + Hash + Default> FrequentistOptBuilder<T> {
     pub fn add_var(
         &mut self, s: T, sp: T
     ) -> &mut Self {
-        let v = Tv::Variable(self.index, None, Variable {
-            s: s.clone(), sp: sp.clone(), time: 0
-        });
+        let v = Tv::Variable(
+            Variable {
+                s: s.clone(),
+                sp: sp.clone(),
+                time: 0,
+                vertex: BaseVertexData::new(self.index),
+            }
+        );
         
         self.c_sym.insert(s.clone(), 0);
         self.c_trans.insert((s.clone(), sp.clone()), 0);
-        self.x.insert(s.clone(), Rc::new(RefCell::new(vec![])));
+        self.x.insert(s.clone(), vec![]);
 
-        let v = Rc::new(RefCell::new(v));
         self.vertices.push(v);
         self.index += 1;
         
@@ -61,36 +65,41 @@ impl<T: Clone + Eq + Hash + Default> FrequentistOptBuilder<T> {
         op: BinOp,
     ) -> &mut Self {
         let v: Tv<T>;
+        let (left, right) = (left as usize, right as usize);
         match op {
             BinOp::Sum => {
-                v = Tv::Sum(self.index, None, 
+                v = Tv::Sum( 
                     Binary {
-                        left: self.vertices[left as usize].clone(),
-                        right: self.vertices[right as usize].clone(),
+                        left: Box::new(self.vertices[left].clone()),
+                        right: Box::new(self.vertices[right].clone()),
+                        vertex: BaseVertexData::new(self.index),
                     }
                 );
             },
             BinOp::Subtract => {
-                v = Tv::Subtract(self.index, None, 
+                v = Tv::Subtract( 
                     Binary {
-                        left: self.vertices[left as usize].clone(),
-                        right: self.vertices[right as usize].clone(),
+                        left: Box::new(self.vertices[left].clone()),
+                        right: Box::new(self.vertices[right].clone()),
+                        vertex: BaseVertexData::new(self.index),
                     }
                 );
             },
             BinOp::Prod => {
-                v = Tv::Prod(self.index, None,
+                v = Tv::Prod(
                     Binary {
-                        left: self.vertices[left as usize].clone(),
-                        right: self.vertices[right as usize].clone(),
+                        left: Box::new(self.vertices[left].clone()),
+                        right: Box::new(self.vertices[right].clone()),
+                        vertex: BaseVertexData::new(self.index),
                     }
                 );
             },
             BinOp::ProdDependent => {
-                v = Tv::ProdDep(self.index, None,
+                v = Tv::ProdDep(
                     Binary {
-                        left: self.vertices[left as usize].clone(),
-                        right: self.vertices[right as usize].clone(),
+                        left: Box::new(self.vertices[left].clone()),
+                        right: Box::new(self.vertices[right].clone()),
+                        vertex: BaseVertexData::new(self.index),
                     }
                 );
             },
@@ -98,7 +107,6 @@ impl<T: Clone + Eq + Hash + Default> FrequentistOptBuilder<T> {
             
         }
 
-        let v = Rc::new(RefCell::new(v));
         self.vertices.push(v);
         self.index += 1;
         
@@ -112,17 +120,25 @@ impl<T: Clone + Eq + Hash + Default> FrequentistOptBuilder<T> {
         op: UnaryOp,
     ) -> &mut Self {
         let v: Tv<T>;
+        let child = child as usize;
         match op {
             UnaryOp::Prod => {
-                v = Tv::ProdUnary(self.index, None, self.vertices[child as usize].clone(), constant);
+                v = Tv::ProdUnary(
+                    BaseVertexData::new(self.index),
+                    Box::new(self.vertices[child as usize].clone()),
+                    constant,
+                );
             },
             UnaryOp::InverseAtomic => {
-                v = Tv::Inverse(self.index, None, self.vertices[child as usize].clone(), 0);
+                v = Tv::Inverse(
+                    BaseVertexData::new(self.index),
+                    Box::new(self.vertices[child as usize].clone()),
+                    0,
+                );
             },
             _ => { unimplemented!() }
         }
 
-        let v = Rc::new(RefCell::new(v));
         self.vertices.push(v);
         self.index += 1;
         
@@ -130,12 +146,12 @@ impl<T: Clone + Eq + Hash + Default> FrequentistOptBuilder<T> {
     }
 
     pub fn build(&mut self) -> FrequentistOpt<T> {
-        let phi = self.vertices.last().unwrap();
+        let phi = self.vertices.last().cloned().unwrap();
 
         FrequentistOpt {
             c_sym: self.c_sym.clone(),
             c_trans: self.c_trans.clone(),
-            phi: phi.clone(),
+            phi: Box::new(phi),
             n: 0,
             mean: 0.0,
             x: self.x.clone(),

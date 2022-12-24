@@ -2,8 +2,8 @@ use fmlib::{
     op,
     runner,
     util,
-    experiments,
-    experiments_2,
+    // experiments,
+    // experiments_2,
     monitors::{
         frequentist::builder::FrequentistBuilder,
         fafrequentist::builder::FaFrequentistBuilder,
@@ -15,7 +15,7 @@ use fmlib::{
 fn main() {
     // For logging purposes
     env_logger::init();
-    experiments_2::run();
+    // experiments_2::run();
     // _run_frequentist_mc();
     // _run_fafrequentist_mc();
   

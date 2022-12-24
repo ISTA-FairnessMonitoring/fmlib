@@ -1,68 +1,84 @@
-use std::{rc::Rc, cell::RefCell, collections::{HashSet, HashMap}, hash::Hash, fmt::Debug};
+use std::{collections::{HashSet, HashMap}, hash::Hash, fmt::Debug};
 
 use super::frequentist_opt::FrequentistOpt;
 
-pub type Tv<T> = TreeVertex<T>;
-pub type X<T> = RefCell<HashMap<T, RefCell<Vec<Option<T>>>>>;
+pub type Tv<T> = Vertex<T>;
 
+#[derive(Clone)]
 pub struct Variable<T: Clone + Eq + Hash> {
     pub s: T,
     pub sp: T,
     pub time: i32,
+    pub vertex: BaseVertexData
 }
 
+#[derive(Clone)]
 pub struct Binary<T: Clone + Eq + Hash> {
-    pub left: Rc<RefCell<Tv<T>>>,
-    pub right: Rc<RefCell<Tv<T>>>,
+    pub left: Box<Tv<T>>,
+    pub right: Box<Tv<T>>,
+    pub vertex: BaseVertexData
 }
 
-pub enum TreeVertex<T: Clone + Eq + Hash> {
-    Variable(i32, Option<f64>, Variable<T>),              // (ID, Register, Data)
-    Sum(i32, Option<f64>, Binary<T>),                     // (ID, Register, Data)
-    Subtract(i32, Option<f64>, Binary<T>),
-    Prod(i32, Option<f64>, Binary<T>),
-    ProdDep(i32, Option<f64>, Binary<T>),
-    ProdUnary(i32, Option<f64>, Rc<RefCell<Tv<T>>>, f64), // (ID, Register, Child, Constant)
-    Inverse(i32, Option<f64>, Rc<RefCell<Tv<T>>>, i32),   // (ID, Register, Child, Counter)
+#[derive(Clone)]
+pub struct BaseVertexData {
+    pub idx: i32,        // Index
+    pub reg: Option<f64> // Register
 }
 
-impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
+impl BaseVertexData {
+    pub fn new(idx: i32) -> Self {
+        Self { idx, reg: None }
+    }
+}
+
+#[derive(Clone)]
+pub enum Vertex<T: Clone + Eq + Hash> {
+    Variable(Variable<T>),
+    Sum(Binary<T>),
+    Subtract(Binary<T>),
+    Prod(Binary<T>),
+    ProdDep(Binary<T>),
+    ProdUnary(BaseVertexData, Box<Tv<T>>, f64), // (Vertex, Child, Constant)
+    Inverse(BaseVertexData, Box<Tv<T>>, i32),   // (Vertex, Child, Counter)
+}
+
+impl<T: Clone + Eq + Hash + PartialEq + Debug> Vertex<T> {
     pub fn reset_t(&mut self) {
         match self {
-            Self::Variable(_, _, ref mut v) => {
+            Self::Variable(ref mut v) => {
                 v.time = -1;
             },
-            Self::Sum(_, _, b) |
-            Self::Subtract(_, _, b) |
-            Self::Prod(_, _, b) |
-            Self::ProdDep(_, _, b) => {
-                b.left.borrow_mut().reset_t();
-                b.right.borrow_mut().reset_t();
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                b.left.reset_t();
+                b.right.reset_t();
             },
-            Self::ProdUnary(_, _, tv, _) |
-            Self::Inverse(_, _, tv, _) => {
-                tv.borrow_mut().reset_t();
+            Self::ProdUnary(_, tv, _) |
+            Self::Inverse(_, tv, _) => {
+                tv.reset_t();
             },
         }
     }
 
     pub fn reset_comp(&mut self) {
         match self {
-            Self::Variable(_, r, _) => {
-                *r = None;
+            Self::Variable(v) => {
+                v.vertex.reg = None;
             },
-            Self::Sum     (_, r, b) |
-            Self::Subtract(_, r, b) |
-            Self::Prod    (_, r, b) |
-            Self::ProdDep (_, r, b) => {
-                *r = None;
-                b.left.borrow_mut().reset_comp();
-                b.right.borrow_mut().reset_comp();
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                b.vertex.reg = None;
+                b.left.reset_comp();
+                b.right.reset_comp();
             },
-            Self::ProdUnary(_, r, tv, _) |
-            Self::Inverse  (_, r, tv, _) => {
-                *r = None;
-                tv.borrow_mut().reset_comp();
+            Self::ProdUnary(v, tv, _) |
+            Self::Inverse  (v, tv, _) => {
+                v.reg = None;
+                tv.reset_comp();
             },
         }
     }
@@ -70,19 +86,19 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
     pub fn dep(&self) -> HashSet<T> {
         let mut result = HashSet::new();
         match self {
-            Self::Variable(_, _, v) => {
+            Self::Variable(v) => {
                 result.insert(v.s.clone());
             },
-            Self::Sum(_, _, b) |
-            Self::Subtract(_, _, b) |
-            Self::Prod(_, _, b) |
-            Self::ProdDep(_, _, b) => {
-                result = b.left.borrow().dep();
-                result.extend(b.right.borrow().dep());
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                result = b.left.dep();
+                result.extend(b.right.dep());
             },
-            Self::ProdUnary(_, _, tv, _) |
-            Self::Inverse(_, _, tv, _) => {
-                result = tv.borrow().dep();
+            Self::ProdUnary(_, tv, _) |
+            Self::Inverse(_, tv, _) => {
+                result = tv.dep();
             },
         }
 
@@ -92,18 +108,18 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
     pub fn size(&self) -> i32 {
         let result: i32;
         match self {
-            Self::Variable(_, _, _) => {
+            Self::Variable(_) => {
                 result = 1;
             },
-            Self::Sum(_, _, b) |
-            Self::Subtract(_, _, b) |
-            Self::Prod(_, _, b) |
-            Self::ProdDep(_, _, b) => {
-                result = b.left.borrow().size() + b.right.borrow().size();
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                result = b.left.size() + b.right.size();
             },
-            Self::ProdUnary(_, _, tv, _) |
-            Self::Inverse(_, _, tv, _) => {
-                result = tv.borrow().size();
+            Self::ProdUnary(_, tv, _) |
+            Self::Inverse(_, tv, _) => {
+                result = tv.size();
             },
         }
 
@@ -113,19 +129,19 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
     pub fn vars(&self) -> HashSet<(T, T)> {
         let mut result = HashSet::new();
         match self {
-            Self::Variable(_, _, v) => {
+            Self::Variable(v) => {
                 result.insert((v.s.clone(), v.sp.clone()));
             },
-            Self::Sum(_, _, b) |
-            Self::Subtract(_, _, b) |
-            Self::Prod(_, _, b) |
-            Self::ProdDep(_, _, b) => {
-                result = b.left.borrow().vars();
-                result.extend(b.right.borrow().vars());
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                result = b.left.vars();
+                result.extend(b.right.vars());
             },
-            Self::ProdUnary(_, _, tv, _) |
-            Self::Inverse(_, _, tv, _) => {
-                result = tv.borrow().vars();
+            Self::ProdUnary(_, tv, _) |
+            Self::Inverse(_, tv, _) => {
+                result = tv.vars();
             },
         }
 
@@ -134,126 +150,126 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
 
     pub fn max_t(&self, s: T) -> i32 {
         match self {
-            Self::Variable(_, _, v) => {
+            Self::Variable(v) => {
                 v.time
             },
-            Self::Sum(_, _, b) |
-            Self::Subtract(_, _, b) |
-            Self::Prod(_, _, b) |
-            Self::ProdDep(_, _, b) => {
-                b.left.borrow().max_t(s.clone()).max(
-                    b.right.borrow().max_t(s.clone())
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                b.left.max_t(s.clone()).max(
+                    b.right.max_t(s.clone())
                 )
             },
-            Self::ProdUnary(_, _, tv, _) |
-            Self::Inverse(_, _, tv, _) => {
-                tv.borrow().max_t(s)
+            Self::ProdUnary(_, tv, _) |
+            Self::Inverse(_, tv, _) => {
+                tv.max_t(s)
             },
         }
     }
 
     pub fn phase_t(&mut self, s: T, t: i32) {
         match self {
-            Self::Variable(_, _, v) => {
+            Self::Variable(v) => {
                 if v.s == s {
                     // println!("------ var_[{:?}, {:?}] phase_t({})", v.s, v.sp, t);
                     v.time = t;
                 }
             },
-            Self::Sum(_, _, b) |
-            Self::Subtract(_, _, b) |
-            Self::Prod(_, _, b) |
-            Self::ProdDep(_, _, b) => {
-                b.left.borrow_mut().phase_t(s.clone(), t);
-                b.right.borrow_mut().phase_t(s.clone(), t);
+            Self::Sum(b) |
+            Self::Subtract(b) |
+            Self::Prod(b) |
+            Self::ProdDep(b) => {
+                b.left.phase_t(s.clone(), t);
+                b.right.phase_t(s.clone(), t);
             },
-            Self::ProdUnary(_, _, tv, _) |
-            Self::Inverse(_, _, tv, _) => {
-                tv.borrow_mut().phase_t(s.clone(), t);
+            Self::ProdUnary(_, tv, _) |
+            Self::Inverse(_, tv, _) => {
+                tv.phase_t(s.clone(), t);
             },
         }
     }
 
     pub fn eval(&mut self, m: &mut FrequentistOpt<T>) -> Option<f64> {
         match self {
-            Self::Variable(_, r, v) => {
-                if r.is_some() {
+            Self::Variable(v) => {
+                if v.vertex.reg.is_some() {
                     // println!("---- var_[{:?}, {:?}] is_some", v.s, v.sp);
-                    *r
+                    v.vertex.reg
                 } else {
-                    let x_s = m.x.get(&v.s.clone()).unwrap().clone();
-                    if v.time + 1 >= x_s.borrow().len() as i32 {
+                    let x_s = m.x.get(&v.s).unwrap();
+                    if v.time + 1 >= x_s.len() as i32 {
                         // println!("---- var_[{:?}, {:?}] extract_outcome({})", v.s, v.sp, v.time + 1);
                         m.extract_outcome(v.s.clone(), v.time + 1);
                     }
-                    if v.time + 1 < x_s.borrow().len() as i32 {
+                    else {
                         // println!("---- var_[{:?}, {:?}] extracted", v.s, v.sp);
-                        *r = Some(0.0);
-                        if let Some(x) = &x_s.borrow()[(v.time + 1) as usize] {
+                        v.vertex.reg = Some(0.0);
+                        if let Some(x) = &x_s[(v.time + 1) as usize] {
                             if *x == v.sp {
-                                *r = Some(1.0);
+                                v.vertex.reg = Some(1.0);
                             }
                         }
                     }
-                    *r
+                    v.vertex.reg
                 }
             },
-            Self::Sum(_, r, b) => {
-                if r.is_some() {
-                    *r
+            Self::Sum(b) => {
+                if b.vertex.reg.is_some() {
+                    b.vertex.reg
                 } else {
-                    let eval_l = b.left.borrow_mut().eval(m);
-                    let eval_r = b.right.borrow_mut().eval(m);
+                    let eval_l = b.left.eval(m);
+                    let eval_r = b.right.eval(m);
                     if eval_l.is_some() && eval_r.is_some() {
-                        *r = Some(eval_l.unwrap() + eval_r.unwrap());
+                        b.vertex.reg = Some(eval_l.unwrap() + eval_r.unwrap());
                     }
 
-                    *r
+                    b.vertex.reg
                 }
             },
-            Self::Subtract(_, r, b) => {
-                if r.is_some() {
-                    *r
+            Self::Subtract(b) => {
+                if b.vertex.reg.is_some() {
+                    b.vertex.reg
                 } else {
-                    let eval_l = b.left.borrow_mut().eval(m);
-                    let eval_r = b.right.borrow_mut().eval(m);
+                    let eval_l = b.left.eval(m);
+                    let eval_r = b.right.eval(m);
                     if eval_l.is_some() && eval_r.is_some() {
-                        *r = Some(eval_l.unwrap() - eval_r.unwrap());
+                        b.vertex.reg = Some(eval_l.unwrap() - eval_r.unwrap());
                     }
-                    *r
+                    b.vertex.reg
                 }
             },
-            Self::Prod(_, r, b) => {
-                if r.is_some() {
-                    *r
+            Self::Prod(b) => {
+                if b.vertex.reg.is_some() {
+                    b.vertex.reg
                 } else {
-                    let eval_l = b.left.borrow_mut().eval(m);
-                    let eval_r = b.right.borrow_mut().eval(m);
+                    let eval_l = b.left.eval(m);
+                    let eval_r = b.right.eval(m);
                     if eval_l.is_some() && eval_r.is_some() {
-                        *r = Some(eval_l.unwrap() * eval_r.unwrap());
+                        b.vertex.reg = Some(eval_l.unwrap() * eval_r.unwrap());
                     }
-                    *r
+                    b.vertex.reg
                 }
             }
-            Self::ProdUnary(_, r, tv, c) => {
-                if r.is_some() {
-                    *r
+            Self::ProdUnary(v, tv, c) => {
+                if v.reg.is_some() {
+                    v.reg
                 } else {
-                    let eval_tv = tv.borrow_mut().eval(m);
+                    let eval_tv = tv.eval(m);
                     if eval_tv.is_some() {
-                        *r = Some(*c * eval_tv.unwrap());
+                        v.reg = Some(*c * eval_tv.unwrap());
                     }
-                    *r
+                    v.reg
                 }
                 
             },
-            Self::ProdDep(_, r, b) => {
-                if r.is_some() {
-                    *r
+            Self::ProdDep(b) => {
+                if b.vertex.reg.is_some() {
+                    b.vertex.reg
                 } else {
-                    let dep_l = b.left.borrow().dep();
+                    let dep_l = b.left.dep();
                     let mut dep_intrsct = HashSet::<T>::new();
-                    for v in b.right.borrow().vars() {
+                    for v in b.right.vars() {
                         if dep_l.contains(&v.0) {
                             dep_intrsct.insert(v.0);
                         }
@@ -261,20 +277,20 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
                     
                     let mut t_intrsct = HashMap::<T, i32>::new();
                     for d in dep_intrsct {
-                        let max_t = b.left.borrow().max_t(d.clone());
+                        let max_t = b.left.max_t(d.clone());
                         t_intrsct.insert(d.clone(), max_t);
                     }
                     
                     for (s, t) in t_intrsct {
-                        b.right.borrow_mut().phase_t(s, t + 1);
+                        b.right.phase_t(s, t + 1);
                     }
 
-                    let eval_l = b.left.borrow_mut().eval(m);
-                    let eval_r = b.right.borrow_mut().eval(m);
+                    let eval_l = b.left.eval(m);
+                    let eval_r = b.right.eval(m);
                     if eval_l.is_some() && eval_r.is_some() {
-                        *r = Some(eval_l.unwrap() * eval_r.unwrap());
+                        b.vertex.reg = Some(eval_l.unwrap() * eval_r.unwrap());
                     }
-                    *r
+                    b.vertex.reg
                 }
             }
             _ => { unimplemented!() }
@@ -283,27 +299,27 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
 
     pub fn range(&self) -> [f64; 2] {
         match self {
-            Self::Variable(_, _, _) => [0.0, 1.0],
+            Self::Variable(_) => [0.0, 1.0],
             
             // [l + l', h + h']
-            Self::Sum(_, _, b) => {
-                let d_l = b.left.borrow().range();
-                let d_r = b.right.borrow().range();
+            Self::Sum(b) => {
+                let d_l = b.left.range();
+                let d_r = b.right.range();
                 [d_l[0] + d_r[0] , d_l[1] + d_r[1]]
             },
 
             // [l - h', l' - h]
-            Self::Subtract(_, _, b) => {
-                let d_l = b.left.borrow().range();
-                let d_r = b.right.borrow().range();
+            Self::Subtract(b) => {
+                let d_l = b.left.range();
+                let d_r = b.right.range();
                 [d_l[0] - d_r[1] , d_l[1] - d_r[0]]
             },
 
             // [min(S), max(S)]
             // where S = {l*h, l*h', l'*h, l'*h'}.
-            Self::Prod(_, _, b) | Self::ProdDep(_, _, b) => {
-                let d_l = b.left.borrow().range();
-                let d_r = b.right.borrow().range();
+            Self::Prod(b) | Self::ProdDep(b) => {
+                let d_l = b.left.range();
+                let d_r = b.right.range();
 
                 let (mut min, mut max): (f64, f64) = (1e9, -1e9);
                 for x in d_l.iter() {
@@ -316,8 +332,8 @@ impl<T: Clone + Eq + Hash + PartialEq + Debug> TreeVertex<T> {
                 [min, max]
             },
 
-            Self::ProdUnary(_, _, tv, c) => {
-                let d_tv = tv.borrow().range();
+            Self::ProdUnary(_, tv, c) => {
+                let d_tv = tv.range();
                 if *c > 0.0 {
                     [d_tv[0] * c, d_tv[1] * c]
                 } else {
