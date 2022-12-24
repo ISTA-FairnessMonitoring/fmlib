@@ -10,8 +10,8 @@ mod tests {
     };
     use fmlib::envs::lending::{
         memoryless::Lmmc,
-        lv::{Decision, Payback},
-        lmvm::*,
+        memoryless::{Decision, Payback},
+        mapper::*,
     };
     use fmlib::envs::mc::Mc;
     use fmlib::util;
@@ -37,7 +37,7 @@ mod tests {
 
     fn _run_lending_memless(
         mc: &mut Lmmc,
-        mapper: &Lmvm,
+        mapper: &LendingVertexMapper,
         monitors: &mut Vec<&mut Frequentist<Lmv>>,
         n: i32
     ) -> Vec<Option<(f64, f64)>> {
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn test_frequentist_demographic_lmmc() {
         let mut mc = util::markov_chain_lending_medium();
-        let mapper = Lmvm {};
+        let mapper = LendingVertexMapper {};
 
         let (s, s_prime) = ((0, 0), (1, 0));
         let d = Decision::Accept;
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn test_frequentist_eq_opp_lmmc() {
         let mut mc = util::markov_chain_lending_medium();
-        let mapper = Lmvm {};
+        let mapper = LendingVertexMapper {};
         let (s, s_prime) = ((0, 0), (1, 0));
         let d = Decision::Accept;
         let p = Payback::Success;
@@ -263,7 +263,7 @@ mod tests {
     fn test_frequentist_eq_odd_lmmc() {
         let mut mc = util::markov_chain_lending_medium();
 
-        let mapper = Lmvm {};
+        let mapper = LendingVertexMapper {};
 
         let (s, s_prime) = ((0, 0), (1, 0));
         let d = Decision::Accept;

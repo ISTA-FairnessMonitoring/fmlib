@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::vec;
 
 use crate::envs::admission::{
@@ -9,37 +8,14 @@ use crate::envs::admission::{
 use crate::envs::mc::Mc;
 use crate::envs::lending::{
     lending::Lending,
-    mapper::*,
     memoryless::*,
 };
 use std::collections::HashMap;
 use rand::Rng;
-use crate::envs::lending::lv::*;
 
 // ================ Markov Chain Generators ================
 // Each function in this division mainly generates a Markov chain,
 // parameters of which are hard-coded in the function body.
-
-pub fn markov_chain_lending_small() -> (Mc, HashMap<Rc<Lv>, i32>) {
-    let lending = Lending {
-        group_count: 2,
-        credit_score: 2,
-        group_population: vec![1, 1],
-        payback_prob: HashMap::from([(0, 0.4), (1, 0.7)]),
-        init_credit: vec![vec![0, 1], vec![1, 0]],
-        policy: HashMap::from(
-            [
-                ((0, 0), 0.3),
-                ((0, 1), 0.7),
-                ((1, 0), 0.5),
-                ((1, 1), 0.5),
-            ]
-        )
-    };
-
-    let mut visitor = LMCMapper::new(lending);
-    visitor.map()
-}
 
 pub fn markov_chain_memless() -> LendingMemorylessMarkovChain {
     let payback_prob = (0..10).map(
