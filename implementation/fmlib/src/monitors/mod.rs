@@ -5,3 +5,4 @@ pub mod composite_bayesian; // Compound Bayesian (outputs confidence interval at
 pub mod bayesian_exp;       // Optimized Bayesian
 pub mod bayesian_confint;   // Confidence interval Bayesian, with Optimized Bayesian
 pub mod frequentist_opt;
+pub mod dyn_frequentist;
