@@ -2,7 +2,7 @@
 mod tests {
     use fmlib::{
         monitors::{
-            cbayesian::cbayesian::CBayesian,
+            composite_bayesian::composite_bayesian::CompositeBayesian,
             bayesian::builder::BayesianBuilder
         },
         envs::mc::Mc,
@@ -13,7 +13,7 @@ mod tests {
 
     fn _run(
         mc: &mut Mc,
-        monitor: &mut CBayesian<i32>,
+        monitor: &mut CompositeBayesian<i32>,
         n: i32
     ) -> (f64, f64) {
         let mut result = (0.0, 0.0);
@@ -55,7 +55,7 @@ mod tests {
 
         let delta: f64 = 0.05;
         
-        let mut m = CBayesian {
+        let mut m = CompositeBayesian {
             delta, exp_monitor, exp2_monitor
         };
 

@@ -1,12 +1,12 @@
 use crate::monitors::bayesian::bayesian::Bayesian;
 
-pub struct CBayesian<T: Clone> {
+pub struct CompositeBayesian<T: Clone> {
     pub exp_monitor: Bayesian<T>,
     pub exp2_monitor: Bayesian<T>,
     pub delta: f64,
 }
 
-impl<T: Clone + PartialEq> CBayesian<T> {
+impl<T: Clone + PartialEq> CompositeBayesian<T> {
     pub fn init(&mut self, sigma: T) {
         self.exp_monitor.init(sigma.clone());
         self.exp2_monitor.init(sigma.clone());
