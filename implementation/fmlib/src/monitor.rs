@@ -8,6 +8,9 @@ use std::fmt::Debug;
 
 pub enum Monitor<T: Clone> {
     Frequentist(Frequentist<T>),
+    // The *fairness-aware* monitoring scheme is borrowed from the 
+    // following FAT* '19 paper by Albarghouthi and Vinitsky: 
+    // https://doi.org/10.1145/3287560.3287588  
     FairnessAwareFrequentist(FaFrequentist<T>),
     Bayesian(Bayesian<T>),
 }
