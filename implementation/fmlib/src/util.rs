@@ -1,8 +1,7 @@
 use std::vec;
-
 use crate::envs::admission::{
-    admission::Admission,
-    memoryless::Ammc
+    AdmissionProblem,
+    AdmissionMarkovChain
 };
 
 use crate::envs::mc::Mc;
@@ -253,70 +252,70 @@ pub fn markov_chain_7_state() -> Mc {
     Mc::new(m, pi)
 }
 
-pub fn markov_chain_admission_small() -> Ammc {
-    let admission = Admission {
-        score: 2,
-        threshold: 2,
+pub fn markov_chain_admission_small() -> AdmissionMarkovChain {
+    let problem = AdmissionProblem {
+        max_score: 2,
+        college_threshold: 2,
         label_threshold: 1,
         cost: vec![0,1,2],
         change_prob: vec![0.6, 0.3, 0.1],
     };
 
-    Ammc { admission, curr: None }
+    AdmissionMarkovChain::new(problem)
 }
 
 
 
-pub fn markov_chain_admission_small_lv() -> Ammc {
-    let admission = Admission {
-        score: 2,
-        threshold: 2,
+pub fn markov_chain_admission_small_lv() -> AdmissionMarkovChain {
+    let problem = AdmissionProblem {
+        max_score: 2,
+        college_threshold: 2,
         label_threshold: 1,
         cost: vec![0,1,2],
         change_prob: vec![0.9, 0.8, 0.2],
     };
 
-    Ammc { admission, curr: None }
+    AdmissionMarkovChain::new(problem)
 }
 
 
-pub fn markov_chain_admission_medium() -> Ammc {
-    let admission = Admission {
-        score: 4,
-        threshold: 3,
+pub fn markov_chain_admission_medium() -> AdmissionMarkovChain {
+    let problem = AdmissionProblem {
+        max_score: 4,
+        college_threshold: 3,
         label_threshold: 2,
         cost: vec![0,1,2,3,4],
         change_prob: vec![0.9, 0.8, 0.7,0.6,0.5],
     };
 
-    Ammc { admission, curr: None }
+    AdmissionMarkovChain::new(problem)
 }
 
 
-pub fn markov_chain_admission_large() -> Ammc {
-    let admission = Admission {
-        score: 10,
-        threshold: 7,
+pub fn markov_chain_admission_large() -> AdmissionMarkovChain {
+    let problem = AdmissionProblem {
+        max_score: 10,
+        college_threshold: 7,
         label_threshold: 6,
         cost: vec![0,1,2,3,4,5,6,7,8,9,10],
         change_prob: vec![0.95,0.9,0.85,0.8,0.65,0.5,0.4,0.2,0.15,0.1,0.05],
     };
 
-    Ammc { admission, curr: None }
+    AdmissionMarkovChain::new(problem)
 }
 
 
-pub fn markov_chain_admission_large_costs() -> Ammc {
-    let admission = Admission {
-        score: 10,
-        threshold: 7,
+pub fn markov_chain_admission_large_costs() -> AdmissionMarkovChain {
+    let problem = AdmissionProblem {
+        max_score: 10,
+        college_threshold: 7,
         label_threshold: 6,
         cost: vec![0,1,2,3,4,5,6,7,8,9,10],
         change_prob: vec![0.95,0.9,0.85,0.8,0.65,0.5,0.4,0.2,0.15,0.1,0.05],
         // change_prob: vec![0.95,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9],
     };
 
-    Ammc { admission, curr: None }
+    AdmissionMarkovChain::new(problem)
 }
 
 

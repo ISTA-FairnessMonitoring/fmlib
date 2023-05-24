@@ -6,7 +6,11 @@ mod tests {
             frequentist::Frequentist,
             builder::FrequentistBuilder
         },
-        envs::admission::{amvm::{Amvm, Amv}, memoryless::Ammc}
+        envs::admission::{
+            AdmissionMarkovChain,
+            AdmissionVertexMapper,
+            ObservedVertex as AOV
+        }
     };
     use fmlib::envs::lending::{
         markov_chain::LendingMarkovChain,
@@ -64,9 +68,9 @@ mod tests {
     }
 
     fn _run_admission_memless(
-        mc: &mut Ammc,
-        mapper: &Amvm,
-        monitors: &mut Vec<&mut Frequentist<Amv>>,
+        mc: &mut AdmissionMarkovChain,
+        mapper: &AdmissionVertexMapper,
+        monitors: &mut Vec<&mut Frequentist<AOV>>,
         n: i32
     ) -> Vec<Option<(f64, f64)>> {
         let mut result = vec![None; monitors.len()];
@@ -326,12 +330,12 @@ mod tests {
     fn test_frequentist_admission_simple() {
         let mut mc = util::markov_chain_admission_small();
 
-        let mapper = Amvm {};
+        let mapper = AdmissionVertexMapper {};
 
-        let mut m = FrequentistBuilder::<Amv>::new()
+        let mut m = FrequentistBuilder::<AOV>::new()
         .set_delta(0.05)
-        .add_freq(Amv::Sample(true), Amv::Cost(0)) // 0
-        .add_freq(Amv::Sample(true), Amv::Cost(2)) // 1
+        .add_freq(AOV::Sample(true), AOV::Cost(0)) // 0
+        .add_freq(AOV::Sample(true), AOV::Cost(2)) // 1
         .add_unary_op(0, 0.0, UnaryOp::Prod) // 2
         .add_unary_op(1, 2.0, UnaryOp::Prod) // 3
         .add_bin_op(2, 3, BinOp::Sum)
