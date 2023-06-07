@@ -3,12 +3,12 @@ use crate::envs::admission::{
     AdmissionProblem,
     AdmissionMarkovChain
 };
-
-use crate::envs::mc::Mc;
 use crate::envs::lending::{
-    lending::Lending,
-    markov_chain::*,
+    LendingProblem,
+    LendingMarkovChain
 };
+use crate::envs::mc::Mc;
+
 use std::collections::HashMap;
 use rand::Rng;
 
@@ -16,7 +16,7 @@ use rand::Rng;
 // Each function in this division mainly generates a Markov chain,
 // parameters of which are hard-coded in the function body.
 
-pub fn markov_chain_memless() -> LendingMarkovChain {
+pub fn markov_chain_lending_small() -> LendingMarkovChain {
     let payback_prob = (0..10).map(
         |x| (x, ((x + 5) % 10) as f64 / 10.0)
     ).collect::<HashMap<_, _>>();
@@ -34,9 +34,9 @@ pub fn markov_chain_memless() -> LendingMarkovChain {
         vec![5, 5, 1, 1, 1, 1, 1, 2, 2, 1]
     ];
 
-    let lending = Lending {
+    let lending = LendingProblem {
         group_count: 2,
-        credit_score: 10,
+        max_credit_score: 10,
         group_population: vec![20, 20],
         payback_prob,
         init_credit,
@@ -65,9 +65,9 @@ pub fn markov_chain_lending_medium() -> LendingMarkovChain {
         vec![3, 3, 4],
     ];
 
-    let lending = Lending {
+    let lending = LendingProblem {
         group_count: 2,
-        credit_score: 3,
+        max_credit_score: 3,
         group_population: vec![10, 10],
         payback_prob,
         init_credit,
@@ -98,9 +98,9 @@ pub fn markov_chain_lending_medium2() -> LendingMarkovChain {
         vec![3, 3, 4],
     ];
 
-    let lending = Lending {
+    let lending = LendingProblem {
         group_count: 2,
-        credit_score: 3,
+        max_credit_score: 3,
         group_population: vec![10, 10],
         payback_prob,
         init_credit,
@@ -129,9 +129,9 @@ pub fn markov_chain_lending_medium_fair() -> LendingMarkovChain {
         vec![2, 5, 3],
     ];
 
-    let lending = Lending {
+    let lending = LendingProblem {
         group_count: 2,
-        credit_score: 3,
+        max_credit_score: 3,
         group_population: vec![10, 10],
         payback_prob,
         init_credit,
@@ -175,9 +175,9 @@ pub fn markov_chain_lending_large() -> LendingMarkovChain {
         vec![  250,  500, 1500, 2250, 1750, 1500, 1000,  500,  500,  250],
     ];
 
-    let lending = Lending {
+    let lending = LendingProblem {
         group_count: 2,
-        credit_score: 10,
+        max_credit_score: 10,
         group_population: vec![1000, 10000],
         payback_prob,
         init_credit,
@@ -223,9 +223,9 @@ pub fn markov_chain_lending_large_fair() -> LendingMarkovChain {
         vec![  250,  500, 1500, 2250, 1750, 1500, 1000,  500,  500,  250],
     ];
 
-    let lending = Lending {
+    let lending = LendingProblem {
         group_count: 2,
-        credit_score: 10,
+        max_credit_score: 10,
         group_population: vec![10000, 10000],
         payback_prob,
         init_credit,
@@ -367,6 +367,7 @@ pub fn _update(v: &mut Vec<Vec<i32>>, (i, j): (i32, i32), k: i32) {
     v[i as usize][j as usize] += k;
 }
 
+// _max_update(v, (i, j), m) sets v[i][j] to max(v[i][j], m).
 pub fn _max_update(v: &mut Vec<Vec<i32>>, (i, j): (i32, i32), m: i32) {
     v[i as usize][j as usize] = v[i as usize][j as usize].max(m);
 }
