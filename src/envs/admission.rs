@@ -6,7 +6,7 @@ use crate::util;
 // as a parameter-set for the admission Markov chain.
 #[derive(Clone)]
 pub struct AdmissionProblem {
-  // Scores are actually in the range [0, max_score-1]
+  // Scores are actually in the range [0..max_score-1]
   pub max_score: i32,
   // Used as the score threshold promoted by the college 
   pub college_threshold: i32,
@@ -38,9 +38,9 @@ pub type Cost = i32;
 
 #[derive(Clone, Debug)]
 pub enum Vertex {
-  Start,
+  Init,
   Sample(Applicant),
-  Cost(Applicant, Cost),
+  Cost  (Applicant, Cost),
 }
 
 // The Markov chain needs an instance of the admission problem to 
@@ -52,7 +52,7 @@ pub struct AdmissionMarkovChain {
 
 impl AdmissionMarkovChain {
   pub fn new(problem: AdmissionProblem) -> Self {
-    AdmissionMarkovChain { problem, curr: Vertex::Start }
+    AdmissionMarkovChain { problem, curr: Vertex::Init }
   }
 
   fn visit_start(&self) -> Vertex {
@@ -92,7 +92,7 @@ impl AdmissionMarkovChain {
   }
 
   fn visit_cost(&self) -> Vertex {
-    Vertex::Start
+    Vertex::Init
   }
 }
 
@@ -102,7 +102,7 @@ impl Iterator for AdmissionMarkovChain {
   fn next(&mut self) -> Option<Self::Item> {
     let next: Vertex;
     match &self.curr {
-      Vertex::Start      => next = self.visit_start(),
+      Vertex::Init       => next = self.visit_start(),
       Vertex::Sample(a)  => next = self.visit_sample(a),
       Vertex::Cost(_, _) => next = self.visit_cost(),
     }
