@@ -4,7 +4,7 @@ A Rust implementation for monitoring fairness over Markov chains.
 
 This repository is mainly a Rust library. For the technical details 
 of our monitors, please refer to our CAV '23 paper
-_Monitoring Algorithmic Fairness_.
+[_Monitoring Algorithmic Fairness_](https://doi.org/10.1007/978-3-031-37703-7_17).
 
 ## Getting Started
 
